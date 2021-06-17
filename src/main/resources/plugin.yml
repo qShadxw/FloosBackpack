@@ -1,0 +1,11 @@
+name: FloosBackpacks
+version: ${project.version}
+main: uk.co.tmdavies.floosbackpacks.FloosBackpacks
+api-version: 1.12
+authors: [Carbonate]
+depend: [NBTAPI]
+description: Private BackPack Plugin for FloosKingdom
+website: www.tmdavies.co.uk
+commands:
+  backpack:
+    aliases: [bp, fbp, floosbackpack, floosbackpacks, fbackpack, fbackpacks, floosbp]
