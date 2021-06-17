@@ -71,17 +71,19 @@ public class BackpackCommand implements CommandExecutor {
                     }
 
                     ItemStack item = new ItemStack(Material.valueOf((String) config.get("Backpack.Material")), 1);
-                    ItemMeta iMeta = item.getItemMeta();
-
-                    item.getItemMeta().setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
-                    item.setItemMeta(iMeta);
 
                     String uuid = UUID.randomUUID().toString();
 
                     NBTItem nbtItem = new NBTItem(item);
 
                     nbtItem.setString("id", uuid);
+                    nbtItem.applyNBT(item);
                     item = nbtItem.getItem();
+
+                    ItemMeta iMeta = item.getItemMeta();
+
+                    item.getItemMeta().setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
+                    item.setItemMeta(iMeta);
 
                     Inventory inv = Bukkit.createInventory(null, size, Utils.Chat((String) config.get("Backpack.Name")));
 

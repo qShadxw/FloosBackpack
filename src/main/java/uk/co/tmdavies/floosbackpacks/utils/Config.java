@@ -43,6 +43,12 @@ public class Config {
 
     }
 
+    public YamlConfiguration getConfig() {
+
+        return config;
+
+    }
+
     public void saveConfig() {
 
         try {

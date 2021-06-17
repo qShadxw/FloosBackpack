@@ -45,7 +45,7 @@ public final class FloosBackpacks extends JavaPlugin {
 
     public void setUpConfig() {
 
-        if ((double) config.get("Version") != configVer || config.get("Version") == null) {
+        if (config.getConfig().getDouble("Version") != configVer) {
 
             config.set("Version", configVer);
             config.set("Backpack.Name", "&6&lBackpack");
@@ -59,7 +59,7 @@ public final class FloosBackpacks extends JavaPlugin {
 
     public void setUpLang() {
 
-        if ((double) lang.get("Version") != langVer || lang.get("Version") == null) {
+        if (lang.getConfig().getDouble("Version") != langVer) {
 
             lang.set("Version", langVer);
             lang.set("Prefix", "&6&lFloosBackpack &8&l»");
