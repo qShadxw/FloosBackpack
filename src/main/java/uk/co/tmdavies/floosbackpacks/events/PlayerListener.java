@@ -17,10 +17,7 @@ import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
 import uk.co.tmdavies.floosbackpacks.utils.Config;
 import uk.co.tmdavies.floosbackpacks.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class PlayerListener implements Listener {
 
@@ -48,13 +45,22 @@ public class PlayerListener implements Listener {
         Player p = e.getPlayer();
 
         if (p.getInventory().getItemInMainHand().getType() == Material.AIR) return;
+        if (p.getInventory().getItemInMainHand().getType() != Material.valueOf(config.getConfig().getString("Backpack.Material"))) return;
 
         ItemStack hand = p.getInventory().getItemInMainHand();
         NBTItem nbtItem = new NBTItem(hand);
 
-        String uuid = nbtItem.getString("id") != null ? nbtItem.getString("id") : null;
+        if (nbtItem.getString("id") == null) return;
 
-        if (uuid == null) return;
+        String uuid = nbtItem.getString("id");
+
+        p.sendMessage("Backpack: " + uuid);
+
+        for (UUID id : backpackStorage.keySet()) {
+
+            p.sendMessage("Storage: " + id.toString());
+
+        }
 
         p.openInventory(backpackStorage.get(UUID.fromString(uuid)));
 
@@ -89,9 +95,9 @@ public class PlayerListener implements Listener {
 
         List<ItemStack> backPacks = new ArrayList<>();
 
-        for (ItemStack item : p.getInventory().getContents()) {
+        for (ItemStack item : p.getInventory()) {
 
-            if (item.getType() == null || item.getType() == Material.AIR) continue;
+            if (item == null) continue;
 
             NBTItem nbtItem = new NBTItem(item);
 
@@ -105,8 +111,8 @@ public class PlayerListener implements Listener {
             String id = nbtItem.getString("id");
             Inventory inv = backpackStorage.get(UUID.fromString(id));
 
-            data.set(id, inv.getContents());
             data.set(id + ".size", inv.getSize());
+            data.set(id + ".contents", inv.getContents());
             data.saveConfig();
 
             backpackStorage.remove(UUID.fromString(id));
@@ -124,7 +130,9 @@ public class PlayerListener implements Listener {
 
         for (ItemStack item : p.getInventory()) {
 
-            if (item.getType() == null || item.getType() == Material.AIR) continue;
+            p.sendMessage("Inventory: " + item);
+
+            if (item == null) continue;
 
             NBTItem nbtItem = new NBTItem(item);
 
@@ -136,20 +144,24 @@ public class PlayerListener implements Listener {
 
             NBTItem nbtItem = new NBTItem(item);
             String id = nbtItem.getString("id");
-            List<ItemStack> contents = (List<ItemStack>) data.getConfig().getList(id);
-
-            ItemStack[] items = new ItemStack[contents.size()];
-            for (int i = 0; i < contents.size(); i++) {
-                ItemStack _i = contents.get(i);
-                if (_i != null) {
-                    items[i] = _i;
-                } else {
-                    items[i] = null;
-                }
-            }
 
             Inventory inv = Bukkit.createInventory(null, data.getConfig().getInt(id + ".size"),
                     Utils.Chat(config.getConfig().getString("Backpack.Name")));
+
+            List<?> list = data.getConfig().getList(id + ".contents");
+            List<ItemStack> contents = new ArrayList<>();
+
+            for (Object o : list) {
+
+                if (o == null) return;
+
+                ItemStack _i = (ItemStack) o;
+
+                contents.add(_i);
+
+            }
+
+            ItemStack[] items = contents.toArray(new ItemStack[0]);
 
             inv.setContents(items);
 

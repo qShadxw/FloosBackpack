@@ -56,7 +56,8 @@ public class BackpackCommand implements CommandExecutor {
 
                     if (size == 0 || size > 54) {
 
-                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Invalid-Size"))));
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Invalid-Size")))
+                                .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix")))));
 
                     }
 
