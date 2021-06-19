@@ -12,6 +12,7 @@ import uk.co.tmdavies.floosbackpacks.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class FloosBackpacks extends JavaPlugin {
 
@@ -48,6 +49,30 @@ public final class FloosBackpacks extends JavaPlugin {
         getLogger().info("FloosBackpacks");
         getLogger().info("Made by Carbonate");
         getLogger().info("Version: " + getDescription().getVersion());
+
+    }
+
+    @Override
+    public void onDisable() {
+
+        if (backpackStorage.keySet().isEmpty()) return;
+
+        HashMap<Inventory, String> reverseStorage = new HashMap<>();
+
+        for (Map.Entry entry : backpackStorage.entrySet())
+            reverseStorage.put((Inventory) entry.getValue(), entry.getKey().toString());
+
+        for (String id : reverseStorage.values()) {
+
+            Inventory inv = backpackStorage.get(id);
+
+            data.set(id + ".contents", inv.getContents());
+            data.set(id + ".size", inv.getSize());
+            data.saveConfig();
+
+            backpackStorage.remove(id);
+
+        }
 
     }
 

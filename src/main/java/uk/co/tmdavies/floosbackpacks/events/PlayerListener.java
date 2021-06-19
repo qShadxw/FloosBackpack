@@ -66,7 +66,8 @@ public class PlayerListener implements Listener {
 
         Player p = e.getPlayer();
 
-        List<ItemStack> backPacks = new ArrayList<>();
+        HashMap<ItemStack, String> backPacks = new HashMap<>();
+        List<String> playerCache = new ArrayList<>();
 
         for (ItemStack item : p.getInventory()) {
 
@@ -74,11 +75,11 @@ public class PlayerListener implements Listener {
 
             NBTItem nbtItem = new NBTItem(item);
 
-            if (!nbtItem.getString("id").equals("")) backPacks.add(item);
+            if (!nbtItem.getString("id").equals("")) backPacks.put(item, nbtItem.getString("id"));
 
         }
 
-        for (ItemStack item : backPacks) {
+        for (ItemStack item : backPacks.keySet()) {
 
             NBTItem nbtItem = new NBTItem(item);
             String id = nbtItem.getString("id");
@@ -88,7 +89,41 @@ public class PlayerListener implements Listener {
             data.set(id + ".contents", inv.getContents());
             data.saveConfig();
 
+            playerCache.add(id);
+
             backpackStorage.remove(id);
+
+        }
+
+        List<String> ids = new ArrayList<>();
+
+        for (int i = 1; i < 101; i++) {
+
+            if (backpackStorage.containsKey(p.getName() + "-" + i)) {
+
+                ids.add(p.getName() + "-" + i);
+
+            } else {
+
+                break;
+
+            }
+
+        }
+
+        for (String id : ids) {
+
+            if (playerCache.contains(id)) continue;
+
+            Inventory inv = backpackStorage.get(id);
+
+            data.set(id + ".size", inv.getSize());
+            data.set(id + ".contents", inv.getContents());
+            data.saveConfig();
+
+            backpackStorage.remove(id);
+
+            playerCache.remove(id);
 
         }
 
@@ -101,6 +136,7 @@ public class PlayerListener implements Listener {
 
         HashMap<ItemStack, String> backPacks = new HashMap<>();
 
+        // Inventory Check
         for (ItemStack item : p.getInventory()) {
 
             if (item == null) continue;
@@ -111,6 +147,7 @@ public class PlayerListener implements Listener {
 
         }
 
+        // Inventory Check Result Load
         for (ItemStack item : backPacks.keySet()) {
 
             String id = backPacks.get(item);
@@ -155,6 +192,59 @@ public class PlayerListener implements Listener {
 
             list.clear();
             contents.clear();
+
+        }
+
+        // Data.yml Check + Result Load
+        for (int i = 1; i < 101; i++) {
+
+            boolean isLoaded = false;
+
+            String id = p.getName() + "-" + i;
+
+            for (String string : backPacks.values()) {
+
+                if (id.equals(string)) {
+
+                    isLoaded = true;
+
+                    break;
+
+                }
+
+            }
+
+            if (isLoaded) continue;
+
+            Inventory inv = Bukkit.createInventory(null, data.getConfig().getInt(id + ".size"),
+                    Utils.Chat(config.getConfig().getString("Backpack.Name")));
+
+            List<?> list = data.getConfig().getList(id + ".contents");
+
+            if (list == null) return;
+
+            List<ItemStack> contents = new ArrayList<>();
+
+            for (Object o : list) {
+
+                if (o == null) {
+
+                    contents.add(null);
+                    continue;
+
+                }
+
+                ItemStack _i = (ItemStack) o;
+
+                contents.add(_i);
+
+            }
+
+            ItemStack[] items = contents.toArray(new ItemStack[0]);
+
+            inv.setContents(items);
+
+            backpackStorage.put(id, inv);
 
         }
 

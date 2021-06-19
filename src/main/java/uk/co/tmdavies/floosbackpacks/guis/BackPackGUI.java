@@ -2,6 +2,7 @@ package uk.co.tmdavies.floosbackpacks.guis;
 import me.mattstudios.mfgui.gui.components.ItemBuilder;
 import me.mattstudios.mfgui.gui.components.xseries.XMaterial;
 import me.mattstudios.mfgui.gui.guis.PaginatedGui;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -76,6 +77,10 @@ public class BackPackGUI {
             if (plugin.backpackStorage.containsKey(target.getName() + "-" + i)) {
 
                 ids.add(target.getName() + "-" + i);
+
+            } else {
+
+                break;
 
             }
 
