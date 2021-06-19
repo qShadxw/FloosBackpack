@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
+import uk.co.tmdavies.floosbackpacks.guis.BackPackGUI;
 import uk.co.tmdavies.floosbackpacks.utils.Config;
 import uk.co.tmdavies.floosbackpacks.utils.SkullCreator;
 import uk.co.tmdavies.floosbackpacks.utils.Utils;
@@ -51,6 +52,47 @@ public class BackpackCommand implements CommandExecutor {
         if (!isConsole) p = (Player) sender;
 
         switch(args.length) {
+
+            case 2:
+                if (args[0].equalsIgnoreCase("check")) {
+
+                    if (isConsole) {
+
+                        sender.sendMessage(Utils.Chat("&cOnly players may execute this command."));
+                        return true;
+
+                    }
+
+                    if (!sender.hasPermission("floosbackpacks.check")) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.No-Permission"))
+                                .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                                .replace("%permission%", "floosbackpacks.check")));
+
+                        return true;
+
+                    }
+
+                    Player target = Bukkit.getPlayer(args[1]);
+
+                    if (target == null || !target.isOnline()) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Target-Offline"))
+                                .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix"))))
+                                .replace("%target%", args[1])));
+
+                        return true;
+
+                    }
+
+                    BackPackGUI gui = new BackPackGUI();
+
+                    gui.setupInventory(target);
+
+                    gui.openInventory(p);
+
+                }
+                break;
 
             case 3:
                 if (args[0].equalsIgnoreCase("give")) {

@@ -27,7 +27,6 @@ public class PlayerListener implements Listener {
     private Config lang;
     private HashMap<String, Inventory> backpackStorage;
     private HashMap<Player, String> checkingBackpack;
-    private List<Player> onlinePlayers;
 
     public PlayerListener(FloosBackpacks plugin) {
 
@@ -36,7 +35,6 @@ public class PlayerListener implements Listener {
         this.lang = plugin.lang;
         this.backpackStorage = plugin.backpackStorage;
         this.checkingBackpack = plugin.checkingBackpack;
-        this.onlinePlayers = plugin.onlinePlayers;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
@@ -194,7 +192,6 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onItemClickInGUI(InventoryClickEvent e) {
 
-        Player p = e.getWhoClicked().getKiller();
         ItemStack item = e.getCurrentItem();
 
         if (item.getType() != Material.valueOf((String) config.get("Backpack.Material"))) return;
@@ -203,11 +200,9 @@ public class PlayerListener implements Listener {
 
         if (nbtItem.getString("id").equals("")) return;
 
-        if (e.getInventory().getTitle().equals(backpackStorage.get(nbtItem.getString("id")).getTitle())) {
+        if (e.getInventory().getTitle().equals(backpackStorage.get(nbtItem.getString("id")).getTitle())) e.setCancelled(true);
 
-            e.setCancelled(true);
-
-        }
+        if (e.getInventory().getTitle().equals("BackPacks")) e.setCancelled(true);
 
     }
 
