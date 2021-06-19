@@ -3,11 +3,10 @@ package uk.co.tmdavies.floosbackpacks.events;
 import de.tr7zw.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_12_R1.util.CraftMagicNumbers;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -21,19 +20,21 @@ import java.util.*;
 
 public class PlayerListener implements Listener {
 
-    private final FloosBackpacks plugin;
     private Config config;
-    private Config lang;
     private Config data;
-    private HashMap<UUID, Inventory> backpackStorage;
+    private Config lang;
+    private HashMap<String, Inventory> backpackStorage;
+    private HashMap<Player, String> checkingBackpack;
+    private List<Player> onlinePlayers;
 
     public PlayerListener(FloosBackpacks plugin) {
 
-        this.plugin = plugin;
         this.config = plugin.config;
-        this.lang = plugin.lang;
         this.data = plugin.data;
+        this.lang = plugin.lang;
         this.backpackStorage = plugin.backpackStorage;
+        this.checkingBackpack = plugin.checkingBackpack;
+        this.onlinePlayers = plugin.onlinePlayers;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
@@ -44,45 +45,18 @@ public class PlayerListener implements Listener {
 
         Player p = e.getPlayer();
 
-        if (p.getInventory().getItemInMainHand().getType() == Material.AIR) return;
-        if (p.getInventory().getItemInMainHand().getType() != Material.valueOf(config.getConfig().getString("Backpack.Material"))) return;
-
         ItemStack hand = p.getInventory().getItemInMainHand();
+
+        if (hand == null || hand.getType() == Material.AIR) return;
+
         NBTItem nbtItem = new NBTItem(hand);
 
-        if (nbtItem.getString("id") == null) return;
+        if (nbtItem.getString("id").equals("")) return;
 
         String uuid = nbtItem.getString("id");
 
         p.sendMessage("Backpack: " + uuid);
-
-        for (UUID id : backpackStorage.keySet()) {
-
-            p.sendMessage("Storage: " + id.toString());
-
-        }
-
-        p.openInventory(backpackStorage.get(UUID.fromString(uuid)));
-
-        e.setCancelled(true);
-
-    }
-
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent e) {
-
-        Player p = e.getPlayer();
-
-        if (p.getInventory().getItemInMainHand().getType() == Material.AIR) return;
-
-        ItemStack hand = p.getInventory().getItemInMainHand();
-        NBTItem nbtItem = new NBTItem(hand);
-
-        String uuid = nbtItem.getString("id") != null ? nbtItem.getString("id") : null;
-
-        if (uuid == null) return;
-
-        p.openInventory(backpackStorage.get(UUID.fromString(uuid)));
+        p.openInventory(backpackStorage.get(uuid));
 
         e.setCancelled(true);
 
@@ -93,31 +67,9 @@ public class PlayerListener implements Listener {
 
         Player p = e.getPlayer();
 
-        List<ItemStack> backPacks = new ArrayList<>();
+        Utils.saveBackpacks(p);
 
-        for (ItemStack item : p.getInventory()) {
-
-            if (item == null) continue;
-
-            NBTItem nbtItem = new NBTItem(item);
-
-            if (nbtItem.getString("id") != null) backPacks.add(item);
-
-        }
-
-        for (ItemStack item : backPacks) {
-
-            NBTItem nbtItem = new NBTItem(item);
-            String id = nbtItem.getString("id");
-            Inventory inv = backpackStorage.get(UUID.fromString(id));
-
-            data.set(id + ".size", inv.getSize());
-            data.set(id + ".contents", inv.getContents());
-            data.saveConfig();
-
-            backpackStorage.remove(UUID.fromString(id));
-
-        }
+        onlinePlayers.remove(p);
 
     }
 
@@ -126,34 +78,49 @@ public class PlayerListener implements Listener {
 
         Player p = e.getPlayer();
 
-        List<ItemStack> backPacks = new ArrayList<>();
+        onlinePlayers.add(p);
+
+        HashMap<ItemStack, String> backPacks = new HashMap<>();
 
         for (ItemStack item : p.getInventory()) {
-
-            p.sendMessage("Inventory: " + item);
 
             if (item == null) continue;
 
             NBTItem nbtItem = new NBTItem(item);
 
-            if (nbtItem.getString("id") != null) backPacks.add(item);
+            if (!nbtItem.getString("id").equals("")) backPacks.put(item, nbtItem.getString("id"));
 
         }
 
-        for (ItemStack item : backPacks) {
+        for (ItemStack item : backPacks.keySet()) {
 
-            NBTItem nbtItem = new NBTItem(item);
-            String id = nbtItem.getString("id");
+            String id = backPacks.get(item);
 
             Inventory inv = Bukkit.createInventory(null, data.getConfig().getInt(id + ".size"),
                     Utils.Chat(config.getConfig().getString("Backpack.Name")));
 
             List<?> list = data.getConfig().getList(id + ".contents");
+
+            if (list == null) {
+
+                p.sendMessage(Utils.Chat(String.valueOf(lang.get("Backpack.Not-Existing"))
+                        .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                        .replace("%id%", id)));
+
+                return;
+
+            }
+
             List<ItemStack> contents = new ArrayList<>();
 
             for (Object o : list) {
 
-                if (o == null) return;
+                if (o == null) {
+
+                    contents.add(null);
+                    continue;
+
+                }
 
                 ItemStack _i = (ItemStack) o;
 
@@ -165,9 +132,41 @@ public class PlayerListener implements Listener {
 
             inv.setContents(items);
 
-            backpackStorage.put(UUID.fromString(id), inv);
+            backpackStorage.put(id, inv);
+
+            list.clear();
+            contents.clear();
 
         }
+
+        backPacks.clear();
+
+    }
+
+    @EventHandler
+    public void onInvClose(InventoryCloseEvent e) {
+
+        if (checkingBackpack.containsKey(e.getPlayer().getKiller())) {
+
+            Player p = e.getPlayer().getKiller();
+            String id = checkingBackpack.get(p);
+            Inventory inv = e.getInventory();
+
+            if (backpackStorage.containsKey(id)) {
+
+                backpackStorage.replace(id, inv);
+
+            } else {
+
+                data.set(id + ".contents", inv.getContents());
+                data.reloadConfig();
+
+            }
+
+            checkingBackpack.remove(e.getPlayer().getKiller());
+
+        }
+
 
     }
 

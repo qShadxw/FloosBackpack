@@ -54,6 +54,7 @@ public class Config {
         try {
 
             config.save(configFile);
+            reloadConfig();
 
         } catch (IOException e) {
 

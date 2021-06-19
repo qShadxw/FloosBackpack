@@ -14,7 +14,9 @@ import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
 import uk.co.tmdavies.floosbackpacks.utils.Config;
 import uk.co.tmdavies.floosbackpacks.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 public class BackpackCommand implements CommandExecutor {
@@ -23,7 +25,8 @@ public class BackpackCommand implements CommandExecutor {
     private Config config;
     private Config lang;
     private Config data;
-    private HashMap<UUID, Inventory> backpackStorage;
+    private HashMap<String, Inventory> backpackStorage;
+    private HashMap<Player, String> checkingBackpack;
 
     public BackpackCommand(FloosBackpacks plugin) {
 
@@ -32,14 +35,13 @@ public class BackpackCommand implements CommandExecutor {
         this.lang = plugin.lang;
         this.data = plugin.data;
         this.backpackStorage = plugin.backpackStorage;
+        this.checkingBackpack = plugin.checkingBackpack;
 
         plugin.getCommand("backpack").setExecutor(this);
 
     }
 
     public boolean onCommand(CommandSender sender, Command cmd, String string, String[] args) {
-
-        if (!sender.hasPermission("floosbackpack.admin")) return true;
 
         Player p = null;
         boolean isConsole = !(sender instanceof Player);
@@ -51,6 +53,16 @@ public class BackpackCommand implements CommandExecutor {
             case 3:
                 if (args[0].equalsIgnoreCase("give")) {
 
+                    if (!sender.hasPermission("floosbackpacks.give")) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.No-Permission"))
+                                .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                                .replace("%permission%", "floosbackpacks.give")));
+
+                        return true;
+
+                    }
+
                     Player target = Bukkit.getPlayer(args[1]);
                     int size = Integer.parseInt(args[2]);
 
@@ -58,6 +70,8 @@ public class BackpackCommand implements CommandExecutor {
 
                         sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Invalid-Size")))
                                 .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix")))));
+
+                        return true;
 
                     }
 
@@ -71,29 +85,140 @@ public class BackpackCommand implements CommandExecutor {
 
                     }
 
+                    int i = 1;
+
+                    for (String id : backpackStorage.keySet()) {
+
+                        String[] temp = id.split("-");
+
+                        if (temp[0].equalsIgnoreCase(target.getName())) i++;
+
+                    }
+
+                    String id = target.getName() + "-" + i;
                     ItemStack item = new ItemStack(Material.valueOf((String) config.get("Backpack.Material")), 1);
 
-                    String uuid = UUID.randomUUID().toString();
+                    List<String> lore = new ArrayList<>();
+
+                    lore.add("&1");
+                    lore.add("&8&oBackpack ID: " + id);
+
+                    if (item.getType() == Material.SKULL_ITEM) {
+
+                        item = Utils.createSkullUrl(item.getItemMeta().getDisplayName(), (String) config.get("Backpack.SkinUrl"), lore);
+
+                    } else {
+
+                        ItemMeta iMeta = item.getItemMeta();
+
+                        iMeta.setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
+                        iMeta.setLore(lore);
+                        item.setItemMeta(iMeta);
+
+                    }
 
                     NBTItem nbtItem = new NBTItem(item);
 
-                    nbtItem.setString("id", uuid);
+                    nbtItem.setString("id", id);
                     nbtItem.applyNBT(item);
+
                     item = nbtItem.getItem();
-
-                    ItemMeta iMeta = item.getItemMeta();
-
-                    item.getItemMeta().setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
-                    item.setItemMeta(iMeta);
 
                     Inventory inv = Bukkit.createInventory(null, size, Utils.Chat((String) config.get("Backpack.Name")));
 
-                    backpackStorage.put(UUID.fromString(uuid), inv);
+                    backpackStorage.put(id, inv);
                     target.getInventory().addItem(item);
 
                     target.sendMessage(Utils.Chat(String.valueOf(lang.get("Backpack.Give"))
                             .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix"))))
                             .replace("%sender%", isConsole ? "CONSOLE" : p.getDisplayName())));
+
+                }
+
+                if (args[0].equalsIgnoreCase("check")) {
+
+                    if (isConsole) {
+
+                        sender.sendMessage(Utils.Chat("&cOnly players may execute this command."));
+                        return true;
+
+                    }
+
+                    if (!sender.hasPermission("floosbackpacks.check")) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.No-Permission"))
+                                .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                                .replace("%permission%", "floosbackpacks.check")));
+
+                        return true;
+
+                    }
+
+                    Player target = Bukkit.getPlayer(args[1]);
+                    int backpackNo = Integer.parseInt(args[2]);
+
+                    if (!target.isOnline() || target == null) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Target-Offline"))
+                                .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix"))))
+                                .replace("%target%", args[1])));
+
+                        return true;
+
+                    }
+
+                    String id = target.getName() + "-" + backpackNo;
+
+                    Inventory inv = Bukkit.createInventory(null, data.getConfig().getInt(id + ".size"),
+                            Utils.Chat(config.getConfig().getString("Backpack.Name")));
+
+                    if (backpackStorage.containsKey(id)) {
+
+                        inv = backpackStorage.get(id);
+
+                    } else {
+
+                        List<?> list = data.getConfig().getList(id + ".contents");
+
+                        if (list == null) {
+
+                            p.sendMessage(Utils.Chat(String.valueOf(lang.get("Backpack.Not-Existing"))
+                                    .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                                    .replace("%id%", id)));
+
+                            return true;
+
+                        }
+
+                        List<ItemStack> contents = new ArrayList<>();
+
+                        for (Object o : list) {
+
+                            if (o == null) {
+
+                                contents.add(null);
+                                continue;
+
+                            }
+
+                            ItemStack _i = (ItemStack) o;
+
+                            contents.add(_i);
+
+                        }
+
+                        ItemStack[] items = contents.toArray(new ItemStack[0]);
+
+                        inv.setContents(items);
+
+                        list.clear();
+                        contents.clear();
+
+                    }
+
+                    p.openInventory(inv);
+
+                    checkingBackpack.put(p, id);
 
                 }
                 break;
@@ -114,7 +239,9 @@ public class BackpackCommand implements CommandExecutor {
         Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&6&lFloosBackpacks"));
         Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&8&oby Carbonate"));
         Utils.sendPlayerCenteredMessage(sender, Utils.Chat(""));
-        Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&cUsage: /bp give {name} {size}"));
+        Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&cUsages:"));
+        Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&c/bp give {name} {size}"));
+        Utils.sendPlayerCenteredMessage(sender, Utils.Chat("&c/bp check {name} {number}"));
         Utils.sendPlayerCenteredMessage(sender, Utils.Chat(""));
 
     }

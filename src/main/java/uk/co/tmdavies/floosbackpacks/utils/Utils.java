@@ -1,13 +1,38 @@
 package uk.co.tmdavies.floosbackpacks.utils;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
+import de.tr7zw.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.apache.commons.codec.binary.Base64;
+import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 public class Utils {
 
+    private static Config data;
+    private static HashMap<String, Inventory> backpackStorage;
+
     private final static int CENTER_PX = 154;
+
+    public Utils(FloosBackpacks plugin) {
+
+        data = plugin.data;
+        backpackStorage = plugin.backpackStorage;
+
+    }
 
     public static String Chat(String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
@@ -137,5 +162,76 @@ public class Utils {
             return DefaultFontInfo.DEFAULT;
         }
     }
+
+    public static ItemStack createSkullUrl(String name, String url, List<String> lore) {
+
+        GameProfile profile = new GameProfile(UUID.randomUUID(), null);
+
+        PropertyMap propertyMap = profile.getProperties();
+
+        if (propertyMap == null) {
+
+            throw new IllegalStateException("Profile doesn't contain a property map");
+
+        }
+
+        Base64 base64 = new Base64();
+
+        byte[] encodedData = base64.encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", url).getBytes());
+
+        propertyMap.put("textures", new Property("textures", new String(encodedData)));
+
+        ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
+
+        ItemMeta headMeta = head.getItemMeta();
+
+        Class<?> headMetaClass = headMeta.getClass();
+
+        Reflections.getField(headMetaClass, "profile", GameProfile.class).set(headMeta, profile);
+
+        headMeta.setDisplayName(name);
+
+        if (lore != null) {
+
+            lore.forEach(Utils::Chat);
+            headMeta.setLore(lore);
+
+        }
+
+        head.setItemMeta(headMeta);
+
+        return head;
+    }
+
+    public static void saveBackpacks(Player p) {
+
+        List<ItemStack> backPacks = new ArrayList<>();
+
+        for (ItemStack item : p.getInventory()) {
+
+            if (item == null) continue;
+
+            NBTItem nbtItem = new NBTItem(item);
+
+            if (!nbtItem.getString("id").equals("")) backPacks.add(item);
+
+        }
+
+        for (ItemStack item : backPacks) {
+
+            NBTItem nbtItem = new NBTItem(item);
+            String id = nbtItem.getString("id");
+            Inventory inv = backpackStorage.get(id);
+
+            data.set(id + ".size", inv.getSize());
+            data.set(id + ".contents", inv.getContents());
+            data.saveConfig();
+
+            backpackStorage.remove(id);
+
+        }
+
+    }
+
 
 }

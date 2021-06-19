@@ -9,3 +9,13 @@ website: www.tmdavies.co.uk
 commands:
   backpack:
     aliases: [bp, fbp, floosbackpack, floosbackpacks, fbackpack, fbackpacks, floosbp]
+permissions:
+  floosbackpacks.give:
+    default: op
+  floosbackpacks.check:
+    default: op
+  floosbackpacks.admin:
+    children:
+      - floosbackpacks.give
+      - floosbackpacks.check
+    default: op
