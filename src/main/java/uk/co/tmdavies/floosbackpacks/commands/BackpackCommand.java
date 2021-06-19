@@ -10,8 +10,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
 import uk.co.tmdavies.floosbackpacks.utils.Config;
+import uk.co.tmdavies.floosbackpacks.utils.SkullCreator;
 import uk.co.tmdavies.floosbackpacks.utils.Utils;
 
 import java.util.ArrayList;
@@ -100,22 +102,17 @@ public class BackpackCommand implements CommandExecutor {
 
                     List<String> lore = new ArrayList<>();
 
-                    lore.add("&1");
-                    lore.add("&8&oBackpack ID: " + id);
+                    lore.add(Utils.Chat("&1"));
+                    lore.add(Utils.Chat("&8&oBackpack ID: " + id));
 
-                    if (item.getType() == Material.SKULL_ITEM) {
+                    if (item.getType() == Material.SKULL_ITEM)
+                        item = SkullCreator.itemFromBase64((String) config.get("Backpack.SkinUrl"));
 
-                        item = Utils.createSkullUrl(item.getItemMeta().getDisplayName(), (String) config.get("Backpack.SkinUrl"), lore);
+                    ItemMeta iMeta = item.getItemMeta();
 
-                    } else {
-
-                        ItemMeta iMeta = item.getItemMeta();
-
-                        iMeta.setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
-                        iMeta.setLore(lore);
-                        item.setItemMeta(iMeta);
-
-                    }
+                    iMeta.setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
+                    iMeta.setLore(lore);
+                    item.setItemMeta(iMeta);
 
                     NBTItem nbtItem = new NBTItem(item);
 

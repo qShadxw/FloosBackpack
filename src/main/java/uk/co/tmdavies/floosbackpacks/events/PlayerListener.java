@@ -6,7 +6,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -55,7 +57,6 @@ public class PlayerListener implements Listener {
 
         String uuid = nbtItem.getString("id");
 
-        p.sendMessage("Backpack: " + uuid);
         p.openInventory(backpackStorage.get(uuid));
 
         e.setCancelled(true);
@@ -67,9 +68,31 @@ public class PlayerListener implements Listener {
 
         Player p = e.getPlayer();
 
-        Utils.saveBackpacks(p);
+        List<ItemStack> backPacks = new ArrayList<>();
 
-        onlinePlayers.remove(p);
+        for (ItemStack item : p.getInventory()) {
+
+            if (item == null) continue;
+
+            NBTItem nbtItem = new NBTItem(item);
+
+            if (!nbtItem.getString("id").equals("")) backPacks.add(item);
+
+        }
+
+        for (ItemStack item : backPacks) {
+
+            NBTItem nbtItem = new NBTItem(item);
+            String id = nbtItem.getString("id");
+            Inventory inv = backpackStorage.get(id);
+
+            data.set(id + ".size", inv.getSize());
+            data.set(id + ".contents", inv.getContents());
+            data.saveConfig();
+
+            backpackStorage.remove(id);
+
+        }
 
     }
 
@@ -77,8 +100,6 @@ public class PlayerListener implements Listener {
     public void onJoin(PlayerJoinEvent e) {
 
         Player p = e.getPlayer();
-
-        onlinePlayers.add(p);
 
         HashMap<ItemStack, String> backPacks = new HashMap<>();
 
@@ -167,6 +188,26 @@ public class PlayerListener implements Listener {
 
         }
 
+
+    }
+
+    @EventHandler
+    public void onItemClickInGUI(InventoryClickEvent e) {
+
+        Player p = e.getWhoClicked().getKiller();
+        ItemStack item = e.getCurrentItem();
+
+        if (item.getType() != Material.valueOf((String) config.get("Backpack.Material"))) return;
+
+        NBTItem nbtItem = new NBTItem(item);
+
+        if (nbtItem.getString("id").equals("")) return;
+
+        if (e.getInventory().getTitle().equals(backpackStorage.get(nbtItem.getString("id")).getTitle())) {
+
+            e.setCancelled(true);
+
+        }
 
     }
 

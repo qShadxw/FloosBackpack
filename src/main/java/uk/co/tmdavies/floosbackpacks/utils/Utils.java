@@ -13,8 +13,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.apache.commons.codec.binary.Base64;
+import org.bukkit.inventory.meta.SkullMeta;
 import uk.co.tmdavies.floosbackpacks.FloosBackpacks;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -163,74 +165,28 @@ public class Utils {
         }
     }
 
-    public static ItemStack createSkullUrl(String name, String url, List<String> lore) {
-
+    public static ItemStack getSkull(String url) {
+        ItemStack skull = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
+        if (url == null || url.isEmpty())
+            return skull;
+        SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         GameProfile profile = new GameProfile(UUID.randomUUID(), null);
-
-        PropertyMap propertyMap = profile.getProperties();
-
-        if (propertyMap == null) {
-
-            throw new IllegalStateException("Profile doesn't contain a property map");
-
+        byte[] encodedData = Base64.encodeBase64(String.format("{textures:{SKIN:{url:\"%s\"}}}", url).getBytes());
+        profile.getProperties().put("textures", new Property("textures", new String(encodedData)));
+        Field profileField = null;
+        try {
+            profileField = skullMeta.getClass().getDeclaredField("profile");
+        } catch (NoSuchFieldException | SecurityException e) {
+            e.printStackTrace();
         }
-
-        Base64 base64 = new Base64();
-
-        byte[] encodedData = base64.encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", url).getBytes());
-
-        propertyMap.put("textures", new Property("textures", new String(encodedData)));
-
-        ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
-
-        ItemMeta headMeta = head.getItemMeta();
-
-        Class<?> headMetaClass = headMeta.getClass();
-
-        Reflections.getField(headMetaClass, "profile", GameProfile.class).set(headMeta, profile);
-
-        headMeta.setDisplayName(name);
-
-        if (lore != null) {
-
-            lore.forEach(Utils::Chat);
-            headMeta.setLore(lore);
-
+        profileField.setAccessible(true);
+        try {
+            profileField.set(skullMeta, profile);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            e.printStackTrace();
         }
-
-        head.setItemMeta(headMeta);
-
-        return head;
-    }
-
-    public static void saveBackpacks(Player p) {
-
-        List<ItemStack> backPacks = new ArrayList<>();
-
-        for (ItemStack item : p.getInventory()) {
-
-            if (item == null) continue;
-
-            NBTItem nbtItem = new NBTItem(item);
-
-            if (!nbtItem.getString("id").equals("")) backPacks.add(item);
-
-        }
-
-        for (ItemStack item : backPacks) {
-
-            NBTItem nbtItem = new NBTItem(item);
-            String id = nbtItem.getString("id");
-            Inventory inv = backpackStorage.get(id);
-
-            data.set(id + ".size", inv.getSize());
-            data.set(id + ".contents", inv.getContents());
-            data.saveConfig();
-
-            backpackStorage.remove(id);
-
-        }
-
+        skull.setItemMeta(skullMeta);
+        return skull;
     }
 
 

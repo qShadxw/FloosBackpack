@@ -51,21 +51,6 @@ public final class FloosBackpacks extends JavaPlugin {
 
     }
 
-    @Override
-    public void onDisable() {
-
-        for (Player p : onlinePlayers) {
-
-            Utils.saveBackpacks(p);
-
-            onlinePlayers.remove(p);
-
-        }
-
-        onlinePlayers.clear();
-
-    }
-
     public void setUpConfig() {
 
         if (config.getConfig().getDouble("Version") != configVer) {
@@ -73,7 +58,7 @@ public final class FloosBackpacks extends JavaPlugin {
             config.set("Version", configVer);
             config.set("Backpack.Name", "&6&lBackpack");
             config.set("Backpack.Material", "SKULL_ITEM");
-            config.set("Backpack.SkinUrl", "8351e505989838e27287e7afbc7f97e796cab5f3598a76160c131c940d0c5");
+            config.set("Backpack.SkinUrl", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODM1MWU1MDU5ODk4MzhlMjcyODdlN2FmYmM3Zjk3ZTc5NmNhYjVmMzU5OGE3NjE2MGMxMzFjOTQwZDBjNSJ9fX0=");
 
             config.saveConfig();
 
