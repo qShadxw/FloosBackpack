@@ -14,6 +14,7 @@ import uk.co.tmdavies.floosbackpacks.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class BackPackGUI {
 
@@ -59,8 +60,11 @@ public class BackPackGUI {
             }
         }
 
+        UUID uuid = target.getUniqueId();
 
-        ItemStack icon = SkullCreator.itemFromUuid(target.getUniqueId());
+        if (uuid == null) uuid = UUID.randomUUID();
+
+        ItemStack icon = SkullCreator.itemFromUuid(uuid);
         ItemMeta iMeta = icon.getItemMeta();
 
         iMeta.setDisplayName(Utils.Chat("&a" + target.getDisplayName()));
@@ -85,6 +89,8 @@ public class BackPackGUI {
             }
 
         }
+
+        if (ids.isEmpty()) return this;
 
         for (String id : ids) {
 

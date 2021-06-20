@@ -196,17 +196,17 @@ public class BackpackCommand implements CommandExecutor {
                     Player target = Bukkit.getPlayer(args[1]);
                     int backpackNo = Integer.parseInt(args[2]);
 
-                    if (!target.isOnline() || target == null) {
+                    String id;
 
-                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.Target-Offline"))
-                                .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix"))))
-                                .replace("%target%", args[1])));
+                    if (target == null) {
 
-                        return true;
+                        id = args[1] + "-" + backpackNo;
+
+                    } else {
+
+                        id = target.getName() + "-" + backpackNo;
 
                     }
-
-                    String id = target.getName() + "-" + backpackNo;
 
                     Inventory inv = Bukkit.createInventory(null, data.getConfig().getInt(id + ".size"),
                             Utils.Chat(config.getConfig().getString("Backpack.Name")));

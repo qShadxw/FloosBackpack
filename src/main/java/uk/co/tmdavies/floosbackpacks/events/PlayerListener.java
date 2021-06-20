@@ -284,6 +284,8 @@ public class PlayerListener implements Listener {
 
         ItemStack item = e.getCurrentItem();
 
+        if (item == null) return;
+        if (item.getType() == Material.AIR) return;
         if (item.getType() != Material.valueOf((String) config.get("Backpack.Material"))) return;
 
         NBTItem nbtItem = new NBTItem(item);
