@@ -260,6 +260,56 @@ public class BackpackCommand implements CommandExecutor {
                     checkingBackpack.put(p, id);
 
                 }
+                if (args[0].equalsIgnoreCase("giveid")) {
+
+                    if (isConsole) {
+
+                        sender.sendMessage(Utils.Chat("&cOnly players may execute this command."));
+                        return true;
+
+                    }
+
+                    if (!sender.hasPermission("floosbackpacks.giveid")) {
+
+                        sender.sendMessage(Utils.Chat(String.valueOf(lang.get("Misc.No-Permission"))
+                                .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                                .replace("%permission%", "floosbackpacks.check")));
+
+                        return true;
+
+                    }
+
+                    ItemStack item = new ItemStack(Material.valueOf((String) config.get("Backpack.Material")), 1);
+
+                    String id = args[1] + "-" + args[2];
+                    List<String> lore = new ArrayList<>();
+
+                    lore.add(Utils.Chat("&1"));
+                    lore.add(Utils.Chat("&8&oBackpack ID: " + id));
+
+                    if (item.getType() == Material.SKULL_ITEM)
+                        item = SkullCreator.itemFromBase64((String) config.get("Backpack.SkinUrl"));
+
+                    ItemMeta iMeta = item.getItemMeta();
+
+                    iMeta.setDisplayName(Utils.Chat((String) config.get("Backpack.Name")));
+                    iMeta.setLore(lore);
+                    item.setItemMeta(iMeta);
+
+                    NBTItem nbtItem = new NBTItem(item);
+
+                    nbtItem.setString("id", id);
+                    nbtItem.applyNBT(item);
+
+                    item = nbtItem.getItem();
+
+                    p.getInventory().addItem(item);
+
+                    p.sendMessage(Utils.Chat(String.valueOf(lang.get("Backpack.GiveID"))
+                            .replace("%prefix%", Utils.Chat(String.valueOf(lang.get("Prefix"))))
+                            .replace("%id%", id)));
+
+                }
                 break;
 
             default:

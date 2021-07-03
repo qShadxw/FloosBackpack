@@ -7,8 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -43,14 +42,95 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
 
-        if (e.getAction().equals(Action.PHYSICAL)) return;
+        if (e.getAction() == Action.PHYSICAL) return;
+        if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) return;
 
         Player p = e.getPlayer();
 
         ItemStack hand = p.getInventory().getItemInMainHand();
 
         if (hand == null || hand.getType().equals(Material.AIR)) return;
-        if (!hand.getType().equals(Material.valueOf((String) config.get("Backpack.Material")))) return;
+        if (!(hand.getType() == Material.valueOf((String) config.get("Backpack.Material")))) return;
+        if (!hand.getItemMeta().getDisplayName().equalsIgnoreCase(Utils.Chat((String) config.get("Backpack.Name")))) return;
+
+        NBTItem nbtItem = new NBTItem(hand);
+
+        if (nbtItem.getString("id").equals("")) return;
+
+        e.setCancelled(true);
+
+        String uuid = nbtItem.getString("id");
+
+        Inventory inv = null;
+
+        if (!backpackStorage.containsKey(uuid)) {
+
+            // Data.yml Check + Result Load
+            for (int i = 1; i < 101; i++) {
+
+                List<?> list = data.getConfig().getList(uuid + ".contents");
+
+                if (list == null) {
+
+                    p.sendMessage(Utils.Chat(String.valueOf(lang.get("Backpack.Not-Existing"))
+                            .replace("%prefix%", Utils.Chat((String) lang.get("Prefix")))
+                            .replace("%id%", uuid.equals("") ? "No-ID" : uuid)));
+
+                    return;
+
+                }
+
+                inv = Bukkit.createInventory(null, data.getConfig().getInt(uuid + ".size"),
+                        Utils.Chat(config.getConfig().getString("Backpack.Name")));
+
+                List<ItemStack> contents = new ArrayList<>();
+
+                for (Object o : list) {
+
+                    if (o == null) {
+
+                        contents.add(null);
+                        continue;
+
+                    }
+
+                    ItemStack _i = (ItemStack) o;
+
+                    contents.add(_i);
+
+                }
+
+                ItemStack[] items = contents.toArray(new ItemStack[0]);
+
+                inv.setContents(items);
+
+                backpackStorage.put(uuid, inv);
+
+            }
+
+        } else {
+
+            inv = backpackStorage.get(uuid);
+
+        }
+
+        p.openInventory(inv);
+
+    }
+
+    @EventHandler
+    public void onInteractOffHand(PlayerInteractEvent e) {
+
+        if (e.getAction() == Action.PHYSICAL) return;
+        if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) return;
+
+        Player p = e.getPlayer();
+
+        ItemStack hand = p.getInventory().getItemInOffHand();
+
+        if (hand == null || hand.getType().equals(Material.AIR)) return;
+        if (!(hand.getType() == Material.valueOf((String) config.get("Backpack.Material")))) return;
+        if (!hand.getItemMeta().getDisplayName().equalsIgnoreCase(Utils.Chat((String) config.get("Backpack.Name")))) return;
 
         NBTItem nbtItem = new NBTItem(hand);
 
@@ -125,7 +205,7 @@ public class PlayerListener implements Listener {
         HashMap<ItemStack, String> backPacks = new HashMap<>();
         List<String> playerCache = new ArrayList<>();
 
-        // Inventory Check
+        // Inventory Check.
         for (ItemStack item : p.getInventory()) {
 
             if (item == null) continue;
@@ -136,7 +216,7 @@ public class PlayerListener implements Listener {
 
         }
 
-        // Ender Chest Check
+        // Ender Chest Check.
         for (ItemStack item : p.getEnderChest()) {
 
             if (item == null) continue;
@@ -147,6 +227,7 @@ public class PlayerListener implements Listener {
 
         }
 
+        // Save IDs saved from previous checks.
         for (ItemStack item : backPacks.keySet()) {
 
             NBTItem nbtItem = new NBTItem(item);
@@ -165,15 +246,13 @@ public class PlayerListener implements Listener {
 
         List<String> ids = new ArrayList<>();
 
-        for (int i = 1; i < 101; i++) {
+        for (String s : backpackStorage.keySet()) {
 
-            if (backpackStorage.containsKey(p.getName() + "-" + i)) {
+            String[] split = s.split("-");
 
-                ids.add(p.getName() + "-" + i);
+            if (split[0].equalsIgnoreCase(p.getName())) {
 
-            } else {
-
-                break;
+                ids.add(s);
 
             }
 
@@ -334,9 +413,10 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onInvClose(InventoryCloseEvent e) {
 
+        // Through ./bp check command.
         if (checkingBackpack.containsKey(e.getPlayer().getKiller())) {
 
-            Player p = e.getPlayer().getKiller();
+            Player p = (Player) e.getPlayer();
             String id = checkingBackpack.get(p);
             Inventory inv = e.getInventory();
 
@@ -347,11 +427,41 @@ public class PlayerListener implements Listener {
             } else {
 
                 data.set(id + ".contents", inv.getContents());
-                data.reloadConfig();
+                data.saveConfig();
 
             }
 
             checkingBackpack.remove(e.getPlayer().getKiller());
+
+        }
+
+        // If Player has another person's bp.
+        if (e.getInventory().getTitle().equals(Utils.Chat((String) config.get("Backpack.Name")))) {
+
+            Player p = (Player) e.getPlayer();
+            String id;
+
+            ItemStack item = p.getInventory().getItemInMainHand();
+
+            NBTItem nbtItem = new NBTItem(item);
+
+            if (nbtItem.getString("id").equals("")) {
+
+                item = p.getInventory().getItemInOffHand();
+                nbtItem = new NBTItem(item);
+
+            }
+
+            if (nbtItem.getString("id").equals("")) return;
+
+            id = nbtItem.getString("id");
+
+            Inventory invToSave = e.getInventory();
+
+            backpackStorage.replace(id, invToSave);
+
+            data.set(id + ".contents", invToSave.getContents());
+            data.saveConfig();
 
         }
 
@@ -361,19 +471,27 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onItemClickInGUI(InventoryClickEvent e) {
 
+        // Checks if clicker is Player.
+        if (!(e.getWhoClicked() instanceof Player)) return;
+
+        // Checks Backpack's Name equals Backpack Name.
+        if (!e.getInventory().getTitle().equals(Utils.Chat((String) config.get("Backpack.Name")))) return;
+
+        Player p = (Player) e.getWhoClicked();
         ItemStack item = e.getCurrentItem();
 
-        if (item == null) return;
-        if (item.getType() == Material.AIR) return;
+        // Checks if Item clicked is a Backpack Material.
         if (item.getType() != Material.valueOf((String) config.get("Backpack.Material"))) return;
 
         NBTItem nbtItem = new NBTItem(item);
 
+        // Checks if Item clicked has an ID.
         if (nbtItem.getString("id").equals("")) return;
 
-        if (e.getInventory().getTitle().equals(backpackStorage.get(nbtItem.getString("id")).getTitle())) e.setCancelled(true);
+        // Cancels Event.
+        e.setCancelled(true);
 
-        if (e.getInventory().getTitle().equals("BackPacks")) e.setCancelled(true);
+        p.updateInventory();
 
     }
 

@@ -21,7 +21,7 @@ public final class FloosBackpacks extends JavaPlugin {
     public Config data;
 
     public double configVer = 1.0;
-    public double langVer = 1.2;
+    public double langVer = 1.3;
 
     public HashMap<String, Inventory> backpackStorage;
     public HashMap<Player, String> checkingBackpack;
@@ -98,6 +98,7 @@ public final class FloosBackpacks extends JavaPlugin {
             lang.set("Version", langVer);
             lang.set("Prefix", "&6&lFloosBackpack &8&l»");
             lang.set("Backpack.Give", "%prefix% &e%sender% &7has given you a backpack.");
+            lang.set("Backpack.GiveID", "%prefix% &7You have been given the backpack with the ID: &6%id%&7.");
             lang.set("Backpack.Not-Existing", "%prefix% &cThe backpack with the id %id% does not exist. (Case-Sensitive)");
             lang.set("Misc.No-Permission", "%prefix% &cYou do not have the permission: &4%permission%&c.");
             lang.set("Misc.Target-Offline", "%prefix% &cThat player is offline.");

@@ -14,8 +14,11 @@ permissions:
     default: op
   floosbackpacks.check:
     default: op
+  floosbackpacks.giveid:
+    default: op
   floosbackpacks.admin:
     children:
       - floosbackpacks.give
+      - floosbackpacks.giveid
       - floosbackpacks.check
     default: op
